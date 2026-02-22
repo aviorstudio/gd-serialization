@@ -24,6 +24,9 @@ class SampleData extends RefCounted:
 		result.position = Vector2i(int(position_data.get("x", 0)), int(position_data.get("y", 0)))
 		return result
 
+class NestedData extends RefCounted:
+	var value: String = ""
+
 func _initialize() -> void:
 	var serializer_script := load("res://src/object_serialization_module.gd")
 	if serializer_script == null:
@@ -38,15 +41,24 @@ func _initialize() -> void:
 	sample.tags = ["x", "y"]
 	sample.position = Vector2i(2, 7)
 
-	var serialized: Dictionary = serializer.to_dict(sample)
-	var hydrated: SampleData = serializer.from_dict(serialized, SampleData)
+	var config := serializer_script.SerializationConfig.new(Callable(), ["RefCounted", "script", "Script Variables", "count"])
+
+	var serialized_ignored: Dictionary[String, Variant] = serializer.to_dict(sample, config)
+	var payload: Dictionary[String, Variant] = serialized_ignored.duplicate(true)
+	payload["count"] = 42
+	var hydrated: SampleData = serializer.from_dict(payload, SampleData)
 	var cloned: SampleData = serializer.deep_duplicate(sample, SampleData)
+	var normalized: Dictionary[String, Variant] = serializer.normalize_keys({1: "one", "two": 2})
 
 	var failures: Array[String] = []
+	if serialized_ignored.has("count"):
+		failures.append("to_dict should honor ignored_properties config")
 	if hydrated.name != "alpha" or hydrated.count != 42:
 		failures.append("from_dict failed primitive fields")
 	if hydrated.position != Vector2i(2, 7):
 		failures.append("from_dict failed Vector2i")
+	if normalized.get("1", "") != "one" or int(normalized.get("two", 0)) != 2:
+		failures.append("normalize_keys failed to convert dictionary keys to strings")
 	if cloned.tags.size() != 2 or cloned.tags[0] != "x":
 		failures.append("deep_duplicate failed array values")
 	if cloned == sample:

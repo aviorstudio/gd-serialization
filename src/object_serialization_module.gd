@@ -1,51 +1,60 @@
 class_name ObjectSerializationModule
 extends RefCounted
 
-class ObjectSerializationConfig extends RefCounted:
-	var class_path_resolver: Callable
+class SerializationConfig extends RefCounted:
+	var class_resolver: Callable
+	var ignored_properties: Array[String]
 
-	func _init(class_path_resolver: Callable = Callable()) -> void:
-		self.class_path_resolver = class_path_resolver
+	func _init(
+		class_resolver: Callable = Callable(),
+		ignored_properties: Array[String] = DEFAULT_IGNORED_PROPERTY_NAMES
+	) -> void:
+		self.class_resolver = class_resolver
+		self.ignored_properties = []
+		for property_name in ignored_properties:
+			self.ignored_properties.append(str(property_name))
 
-const IGNORED_STORAGE_PROPERTY_NAMES: Array[String] = [
+const DEFAULT_IGNORED_PROPERTY_NAMES: Array[String] = [
 	"RefCounted",
 	"script",
 	"Script Variables"
 ]
 
-var _config: ObjectSerializationConfig = ObjectSerializationConfig.new()
-
-func configure(config: ObjectSerializationConfig) -> void:
-	_config = config if config else ObjectSerializationConfig.new()
-
-func to_dict(obj: Object) -> Dictionary[String, Variant]:
+func to_dict(obj: Object, config: SerializationConfig = null) -> Dictionary[String, Variant]:
+	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var result: Dictionary[String, Variant] = {}
-	var script_properties: Array[Dictionary] = _get_script_properties(obj)
+	var script_properties: Array[Dictionary] = _get_script_properties(obj, resolved_config)
 
 	for property in script_properties:
 		var property_name: String = property.get("name", "")
 		if property_name == "":
 			continue
 		var value = obj.get(property_name)
-		result[property_name] = _serialize_value(value)
+		result[property_name] = _serialize_value(value, resolved_config)
 
 	return result
 
-func from_dict(dict: Dictionary, type: GDScript) -> Object:
+func from_dict(dict: Dictionary[String, Variant], type: GDScript, config: SerializationConfig = null) -> Object:
+	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var obj: Object = type.new()
 
 	for key in dict.keys():
-		if not obj.get(key) == null or _has_property(obj, key):
-			var value = dict[key]
+		if _has_property(obj, key):
+			var value: Variant = dict[key]
 			var property_info: Dictionary = _get_property_info(obj, key)
-
 			if property_info:
-				var deserialized_value = _deserialize_value(value, property_info)
+				var deserialized_value: Variant = _deserialize_value(value, property_info, resolved_config)
 				obj.set(key, deserialized_value)
 
 	return obj
 
-func _serialize_value(value) -> Variant:
+func normalize_keys(dict: Dictionary) -> Dictionary[String, Variant]:
+	var normalized: Dictionary[String, Variant] = {}
+	for key in dict.keys():
+		normalized[str(key)] = dict[key]
+	return normalized
+
+func _serialize_value(value, config: SerializationConfig) -> Variant:
 	if value is int or value is float or value is String or value is bool:
 		return value
 
@@ -55,19 +64,19 @@ func _serialize_value(value) -> Variant:
 	if value is Dictionary:
 		var result: Dictionary = {}
 		for key in value.keys():
-			result[key] = _serialize_value(value[key])
+			result[key] = _serialize_value(value[key], config)
 		return result
 
 	if value is Array:
-		return value.map(func(item) -> Variant: return _serialize_value(item))
+		return value.map(func(item) -> Variant: return _serialize_value(item, config))
 
 	if value is Object:
 		var has_to_dict: bool = value.has_method("to_dict")
-		return value.to_dict() if has_to_dict else to_dict(value)
+		return value.to_dict() if has_to_dict else to_dict(value, config)
 
 	return null
 
-func _deserialize_value(value, property_info: Dictionary) -> Variant:
+func _deserialize_value(value, property_info: Dictionary, config: SerializationConfig) -> Variant:
 	var property_type: int = property_info.type
 
 	if property_type == TYPE_INT:
@@ -119,13 +128,13 @@ func _deserialize_value(value, property_info: Dictionary) -> Variant:
 					if parts.size() >= 2:
 						class_hint = parts[1]
 
-				var script_path := _resolve_script_path(class_hint)
+				var script_path := _resolve_script_path(class_hint, config)
 				if not script_path.is_empty():
 					var script = load(script_path)
 					if script:
 						for item in value:
 							if item is Dictionary:
-								result.append(from_dict(item, script))
+								result.append(from_dict(normalize_keys(item), script, config))
 							else:
 								result.append(item)
 						return result
@@ -143,7 +152,7 @@ func _deserialize_value(value, property_info: Dictionary) -> Variant:
 			if class_hint.is_empty():
 				return null
 
-			var script_path := _resolve_script_path(class_hint)
+			var script_path := _resolve_script_path(class_hint, config)
 			if script_path.is_empty():
 				return null
 
@@ -151,7 +160,8 @@ func _deserialize_value(value, property_info: Dictionary) -> Variant:
 			if script:
 				var script_instance = script.new()
 				var has_from_dict: bool = script_instance.has_method("from_dict")
-				return script.from_dict(value) if has_from_dict else from_dict(value, script)
+				var normalized_value: Dictionary[String, Variant] = normalize_keys(value)
+				return script.from_dict(normalized_value) if has_from_dict else from_dict(normalized_value, script, config)
 		return null
 
 	return null
@@ -177,14 +187,15 @@ func deserialize_slot_keyed_dict(serialized: Dictionary, type_hint: GDScript) ->
 		var slot: int = int(slot_str)
 		var obj_data = serialized[slot_str]
 		if obj_data is Dictionary:
-			result[slot] = type_hint.from_dict(obj_data)
+			result[slot] = type_hint.from_dict(normalize_keys(obj_data))
 		elif obj_data is Object:
 			result[slot] = obj_data
 	return result
 
-func deep_duplicate(obj: Object, type: GDScript) -> Object:
+func deep_duplicate(obj: Object, type: GDScript, config: SerializationConfig = null) -> Object:
+	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var new_obj: Object = type.new()
-	var script_properties: Array[Dictionary] = _get_script_properties(obj)
+	var script_properties: Array[Dictionary] = _get_script_properties(obj, resolved_config)
 
 	for property in script_properties:
 		var property_name: String = property.get("name", "")
@@ -225,7 +236,7 @@ func _duplicate_value(value, property_type: int) -> Variant:
 
 	return null
 
-func _get_script_properties(obj: Object) -> Array[Dictionary]:
+func _get_script_properties(obj: Object, config: SerializationConfig) -> Array[Dictionary]:
 	var properties: Array[Dictionary] = []
 	if obj == null:
 		return properties
@@ -236,7 +247,7 @@ func _get_script_properties(obj: Object) -> Array[Dictionary]:
 		var usage: int = int(prop.get("usage", 0))
 		if name == "" or name.begins_with("_"):
 			continue
-		if IGNORED_STORAGE_PROPERTY_NAMES.has(name):
+		if config.ignored_properties.has(name):
 			continue
 		if (usage & PROPERTY_USAGE_SCRIPT_VARIABLE) == 0:
 			continue
@@ -250,9 +261,9 @@ func _has_property(obj: Object, property_name: String) -> bool:
 			return true
 	return false
 
-func _resolve_script_path(p_class_name: String) -> String:
-	if _config.class_path_resolver.is_valid():
-		var resolved_path: Variant = _config.class_path_resolver.call(p_class_name)
+func _resolve_script_path(p_class_name: String, config: SerializationConfig) -> String:
+	if config.class_resolver.is_valid():
+		var resolved_path: Variant = config.class_resolver.call(p_class_name)
 		if resolved_path is String:
 			return resolved_path
 	return ""
