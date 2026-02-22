@@ -1,0 +1,258 @@
+class_name ObjectSerializationModule
+extends RefCounted
+
+class ObjectSerializationConfig extends RefCounted:
+	var class_path_resolver: Callable
+
+	func _init(class_path_resolver: Callable = Callable()) -> void:
+		self.class_path_resolver = class_path_resolver
+
+const IGNORED_STORAGE_PROPERTY_NAMES: Array[String] = [
+	"RefCounted",
+	"script",
+	"Script Variables"
+]
+
+var _config: ObjectSerializationConfig = ObjectSerializationConfig.new()
+
+func configure(config: ObjectSerializationConfig) -> void:
+	_config = config if config else ObjectSerializationConfig.new()
+
+func to_dict(obj: Object) -> Dictionary[String, Variant]:
+	var result: Dictionary[String, Variant] = {}
+	var script_properties: Array[Dictionary] = _get_script_properties(obj)
+
+	for property in script_properties:
+		var property_name: String = property.get("name", "")
+		if property_name == "":
+			continue
+		var value = obj.get(property_name)
+		result[property_name] = _serialize_value(value)
+
+	return result
+
+func from_dict(dict: Dictionary, type: GDScript) -> Object:
+	var obj: Object = type.new()
+
+	for key in dict.keys():
+		if not obj.get(key) == null or _has_property(obj, key):
+			var value = dict[key]
+			var property_info: Dictionary = _get_property_info(obj, key)
+
+			if property_info:
+				var deserialized_value = _deserialize_value(value, property_info)
+				obj.set(key, deserialized_value)
+
+	return obj
+
+func _serialize_value(value) -> Variant:
+	if value is int or value is float or value is String or value is bool:
+		return value
+
+	if value is Vector2i:
+		return {"x": value.x, "y": value.y}
+
+	if value is Dictionary:
+		var result: Dictionary = {}
+		for key in value.keys():
+			result[key] = _serialize_value(value[key])
+		return result
+
+	if value is Array:
+		return value.map(func(item) -> Variant: return _serialize_value(item))
+
+	if value is Object:
+		var has_to_dict: bool = value.has_method("to_dict")
+		return value.to_dict() if has_to_dict else to_dict(value)
+
+	return null
+
+func _deserialize_value(value, property_info: Dictionary) -> Variant:
+	var property_type: int = property_info.type
+
+	if property_type == TYPE_INT:
+		if value is int:
+			return value
+		return 0
+
+	if property_type == TYPE_FLOAT:
+		if value is float or value is int:
+			return float(value)
+		return 0.0
+
+	if property_type == TYPE_STRING:
+		if value is String:
+			return value
+		return ""
+
+	if property_type == TYPE_BOOL:
+		if value is bool:
+			return value
+		return false
+
+	if property_type == TYPE_VECTOR2I:
+		if value is Vector2i:
+			return value
+		if value is Dictionary:
+			var x: int = value.get("x", 0)
+			var y: int = value.get("y", 0)
+			return Vector2i(x, y)
+		return Vector2i.ZERO
+
+	if property_type == TYPE_DICTIONARY:
+		if value is Dictionary:
+			var result: Dictionary = {}
+			for key in value.keys():
+				result[key] = value[key]
+			return result
+		return {}
+
+	if property_type == TYPE_ARRAY:
+		if value is Array:
+			var hint_string: String = property_info.get("hint_string", "")
+			var result: Array = []
+
+			if not hint_string.is_empty():
+				var class_hint = hint_string
+				if ":" in hint_string:
+					var parts = hint_string.split(":")
+					if parts.size() >= 2:
+						class_hint = parts[1]
+
+				var script_path := _resolve_script_path(class_hint)
+				if not script_path.is_empty():
+					var script = load(script_path)
+					if script:
+						for item in value:
+							if item is Dictionary:
+								result.append(from_dict(item, script))
+							else:
+								result.append(item)
+						return result
+
+			for item in value:
+				result.append(item)
+			return result
+		return []
+
+	if property_type == TYPE_OBJECT:
+		if value is Object:
+			return value
+		if value is Dictionary:
+			var class_hint: String = property_info.get("class_name", "")
+			if class_hint.is_empty():
+				return null
+
+			var script_path := _resolve_script_path(class_hint)
+			if script_path.is_empty():
+				return null
+
+			var script = load(script_path)
+			if script:
+				var script_instance = script.new()
+				var has_from_dict: bool = script_instance.has_method("from_dict")
+				return script.from_dict(value) if has_from_dict else from_dict(value, script)
+		return null
+
+	return null
+
+func _get_property_info(obj: Object, property_name: String) -> Dictionary:
+	var properties: Array[Dictionary] = obj.get_property_list()
+	for prop in properties:
+		if prop.get("name", "") == property_name:
+			return prop
+	return {}
+
+func serialize_slot_keyed_dict(data: Dictionary) -> Dictionary:
+	var result: Dictionary = {}
+	for slot in data:
+		var obj = data[slot]
+		if obj:
+			result[str(slot)] = obj.to_dict()
+	return result
+
+func deserialize_slot_keyed_dict(serialized: Dictionary, type_hint: GDScript) -> Dictionary:
+	var result: Dictionary = {}
+	for slot_str in serialized:
+		var slot: int = int(slot_str)
+		var obj_data = serialized[slot_str]
+		if obj_data is Dictionary:
+			result[slot] = type_hint.from_dict(obj_data)
+		elif obj_data is Object:
+			result[slot] = obj_data
+	return result
+
+func deep_duplicate(obj: Object, type: GDScript) -> Object:
+	var new_obj: Object = type.new()
+	var script_properties: Array[Dictionary] = _get_script_properties(obj)
+
+	for property in script_properties:
+		var property_name: String = property.get("name", "")
+		if property_name == "":
+			continue
+		var value = obj.get(property_name)
+		var type_id: int = int(property.get("type", TYPE_NIL))
+		var duplicated_value = _duplicate_value(value, type_id)
+		new_obj.set(property_name, duplicated_value)
+
+	return new_obj
+
+func _duplicate_value(value, property_type: int) -> Variant:
+	if value is int or value is float or value is String or value is bool:
+		return value
+
+	if value is Vector2i:
+		return Vector2i(value.x, value.y)
+
+	if value is Dictionary:
+		return value.duplicate(true)
+
+	if value is Array:
+		return value.duplicate(true)
+
+	if value is Object:
+		var method_list: Array = value.get_method_list()
+		var has_duplicate := false
+		for method in method_list:
+			if method.name == "duplicate":
+				has_duplicate = true
+				break
+
+		if has_duplicate:
+			return value.duplicate()
+		else:
+			return value
+
+	return null
+
+func _get_script_properties(obj: Object) -> Array[Dictionary]:
+	var properties: Array[Dictionary] = []
+	if obj == null:
+		return properties
+
+	var property_list: Array[Dictionary] = obj.get_property_list()
+	for prop in property_list:
+		var name: String = prop.get("name", "")
+		var usage: int = int(prop.get("usage", 0))
+		if name == "" or name.begins_with("_"):
+			continue
+		if IGNORED_STORAGE_PROPERTY_NAMES.has(name):
+			continue
+		if (usage & PROPERTY_USAGE_SCRIPT_VARIABLE) == 0:
+			continue
+		properties.append(prop)
+	return properties
+
+func _has_property(obj: Object, property_name: String) -> bool:
+	var property_list: Array[Dictionary] = obj.get_property_list()
+	for prop in property_list:
+		if prop.get("name", "") == property_name:
+			return true
+	return false
+
+func _resolve_script_path(p_class_name: String) -> String:
+	if _config.class_path_resolver.is_valid():
+		var resolved_path: Variant = _config.class_path_resolver.call(p_class_name)
+		if resolved_path is String:
+			return resolved_path
+	return ""
