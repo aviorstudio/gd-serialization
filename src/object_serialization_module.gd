@@ -1,6 +1,8 @@
+## Generic object serialization helpers for typed Godot data models.
 class_name ObjectSerializationModule
 extends RefCounted
 
+## Configuration for class resolution and ignored properties.
 class SerializationConfig extends RefCounted:
 	var class_resolver: Callable
 	var ignored_properties: Array[String]
