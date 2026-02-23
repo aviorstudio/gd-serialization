@@ -2,19 +2,27 @@
 class_name ObjectSerializationModule
 extends RefCounted
 
+var _property_cache: Dictionary = {}
+
 ## Configuration for class resolution and ignored properties.
 class SerializationConfig extends RefCounted:
+	## Optional callable used to resolve a class name to a script path.
 	var class_resolver: Callable
+	## Property names to skip during serialization and duplication.
 	var ignored_properties: Array[String]
+	## Enables script property-list caching for faster repeated serialization.
+	var cache_enabled: bool
 
 	func _init(
 		class_resolver: Callable = Callable(),
-		ignored_properties: Array[String] = DEFAULT_IGNORED_PROPERTY_NAMES
+		ignored_properties: Array[String] = DEFAULT_IGNORED_PROPERTY_NAMES,
+		cache_enabled: bool = true
 	) -> void:
 		self.class_resolver = class_resolver
 		self.ignored_properties = []
 		for property_name in ignored_properties:
 			self.ignored_properties.append(str(property_name))
+		self.cache_enabled = cache_enabled
 
 const DEFAULT_IGNORED_PROPERTY_NAMES: Array[String] = [
 	"RefCounted",
@@ -22,6 +30,7 @@ const DEFAULT_IGNORED_PROPERTY_NAMES: Array[String] = [
 	"Script Variables"
 ]
 
+## Serializes an object's script variables into a dictionary.
 func to_dict(obj: Object, config: SerializationConfig = null) -> Dictionary[String, Variant]:
 	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var result: Dictionary[String, Variant] = {}
@@ -36,6 +45,9 @@ func to_dict(obj: Object, config: SerializationConfig = null) -> Dictionary[Stri
 
 	return result
 
+## Creates a new object instance from serialized dictionary data.
+##
+## Callers should cast the return value to their expected type.
 func from_dict(dict: Dictionary, type: GDScript, config: SerializationConfig = null) -> Object:
 	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var obj: Object = type.new()
@@ -51,6 +63,7 @@ func from_dict(dict: Dictionary, type: GDScript, config: SerializationConfig = n
 
 	return obj
 
+## Returns a copy of a dictionary with all keys coerced to strings.
 func normalize_keys(dict: Dictionary) -> Dictionary[String, Variant]:
 	var normalized: Dictionary[String, Variant] = {}
 	for key in dict.keys():
@@ -176,6 +189,7 @@ func _get_property_info(obj: Object, property_name: String) -> Dictionary:
 			return prop
 	return {}
 
+## Serializes a slot-indexed dictionary of objects by calling `to_dict` on each value.
 func serialize_slot_keyed_dict(data: Dictionary) -> Dictionary:
 	var result: Dictionary = {}
 	for slot in data:
@@ -184,6 +198,7 @@ func serialize_slot_keyed_dict(data: Dictionary) -> Dictionary:
 			result[str(slot)] = obj.to_dict()
 	return result
 
+## Deserializes a slot-indexed dictionary into typed objects.
 func deserialize_slot_keyed_dict(serialized: Dictionary, type_hint: GDScript) -> Dictionary:
 	var result: Dictionary = {}
 	for slot_str in serialized:
@@ -195,6 +210,7 @@ func deserialize_slot_keyed_dict(serialized: Dictionary, type_hint: GDScript) ->
 			result[slot] = obj_data
 	return result
 
+## Creates a deep copy of an object by duplicating its script-variable properties.
 func deep_duplicate(obj: Object, type: GDScript, config: SerializationConfig = null) -> Object:
 	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var new_obj: Object = type.new()
@@ -244,15 +260,26 @@ func _get_script_properties(obj: Object, config: SerializationConfig) -> Array[D
 	if obj == null:
 		return properties
 
-	var property_list: Array[Dictionary] = obj.get_property_list()
+	var script: Variant = obj.get_script()
+	var property_list: Array[Dictionary] = []
+	if config.cache_enabled and script != null and _property_cache.has(script):
+		property_list = _property_cache[script]
+	else:
+		var raw_property_list: Array[Dictionary] = obj.get_property_list()
+		for prop in raw_property_list:
+			var name: String = prop.get("name", "")
+			var usage: int = int(prop.get("usage", 0))
+			if name == "" or name.begins_with("_"):
+				continue
+			if (usage & PROPERTY_USAGE_SCRIPT_VARIABLE) == 0:
+				continue
+			property_list.append(prop)
+		if config.cache_enabled and script != null:
+			_property_cache[script] = property_list
+
 	for prop in property_list:
 		var name: String = prop.get("name", "")
-		var usage: int = int(prop.get("usage", 0))
-		if name == "" or name.begins_with("_"):
-			continue
 		if config.ignored_properties.has(name):
-			continue
-		if (usage & PROPERTY_USAGE_SCRIPT_VARIABLE) == 0:
 			continue
 		properties.append(prop)
 	return properties
