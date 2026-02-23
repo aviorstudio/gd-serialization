@@ -34,13 +34,14 @@ func to_dict(obj: Object, config: SerializationConfig = null) -> Dictionary[Stri
 
 	return result
 
-func from_dict(dict: Dictionary[String, Variant], type: GDScript, config: SerializationConfig = null) -> Object:
+func from_dict(dict: Dictionary, type: GDScript, config: SerializationConfig = null) -> Object:
 	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var obj: Object = type.new()
+	var normalized_dict: Dictionary[String, Variant] = normalize_keys(dict)
 
-	for key in dict.keys():
+	for key in normalized_dict.keys():
 		if _has_property(obj, key):
-			var value: Variant = dict[key]
+			var value: Variant = normalized_dict[key]
 			var property_info: Dictionary = _get_property_info(obj, key)
 			if property_info:
 				var deserialized_value: Variant = _deserialize_value(value, property_info, resolved_config)
