@@ -28,20 +28,24 @@ class NestedData extends RefCounted:
 	var value: String = ""
 
 func _initialize() -> void:
-	var serializer_script := load("res://src/object_serialization_module.gd")
+	var serializer_script: GDScript = load("res://src/object_serialization_module.gd")
 	if serializer_script == null:
 		push_error("Failed to load res://src/object_serialization_module.gd")
 		quit(1)
 		return
 
-	var serializer = serializer_script.new()
+	var serializer: Object = serializer_script.new()
 	var sample := SampleData.new()
 	sample.name = "alpha"
 	sample.count = 42
 	sample.tags = ["x", "y"]
 	sample.position = Vector2i(2, 7)
 
-	var config := serializer_script.SerializationConfig.new(Callable(), ["RefCounted", "script", "Script Variables", "count"])
+	var config: Variant = serializer_script.SerializationConfig.new()
+	config.class_resolver = Callable()
+	config.ignored_properties.clear()
+	for property_name in ["RefCounted", "script", "Script Variables", "count"]:
+		config.ignored_properties.append(property_name)
 
 	var serialized_ignored: Dictionary[String, Variant] = serializer.to_dict(sample, config)
 	var payload: Dictionary[String, Variant] = serialized_ignored.duplicate(true)
