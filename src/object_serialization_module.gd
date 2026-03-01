@@ -12,17 +12,21 @@ class SerializationConfig extends RefCounted:
 	var ignored_properties: Array[String]
 	## Enables script property-list caching for faster repeated serialization.
 	var cache_enabled: bool
+	## When true, skips assigning values whose deserialized type mismatches the property type.
+	var skip_type_mismatch: bool
 
 	func _init(
 		class_resolver: Callable = Callable(),
 		ignored_properties: Array[String] = DEFAULT_IGNORED_PROPERTY_NAMES,
-		cache_enabled: bool = true
+		cache_enabled: bool = true,
+		skip_type_mismatch: bool = false
 	) -> void:
 		self.class_resolver = class_resolver
 		self.ignored_properties = []
 		for property_name in ignored_properties:
 			self.ignored_properties.append(str(property_name))
 		self.cache_enabled = cache_enabled
+		self.skip_type_mismatch = skip_type_mismatch
 
 const DEFAULT_IGNORED_PROPERTY_NAMES: Array[String] = [
 	"RefCounted",
@@ -59,6 +63,10 @@ func from_dict(dict: Dictionary, type: GDScript, config: SerializationConfig = n
 			var property_info: Dictionary = _get_property_info(obj, key)
 			if property_info:
 				var deserialized_value: Variant = _deserialize_value(value, property_info, resolved_config)
+				if resolved_config.skip_type_mismatch:
+					var property_type: int = int(property_info.get("type", TYPE_NIL))
+					if property_type == TYPE_OBJECT and not (deserialized_value is Object):
+						continue
 				obj.set(key, deserialized_value)
 
 	return obj
