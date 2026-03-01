@@ -65,6 +65,8 @@ func from_dict(dict: Dictionary, type: GDScript, config: SerializationConfig = n
 
 ## Returns a copy of a dictionary with all keys coerced to strings.
 func normalize_keys(dict: Dictionary) -> Dictionary[String, Variant]:
+	if dict is Dictionary[String, Variant]:
+		return dict
 	var normalized: Dictionary[String, Variant] = {}
 	for key in dict.keys():
 		normalized[str(key)] = dict[key]
