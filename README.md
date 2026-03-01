@@ -22,7 +22,7 @@ var clone: Object = serializer.from_dict(payload, my_data.get_script())
 
 ## API Reference
 
-- `SerializationConfig`: class resolver and ignored property controls.
+- `SerializationConfig`: class resolver, ignored property controls, and optional `skip_type_mismatch` behavior for safer `from_dict` hydration.
 - `to_dict` / `from_dict`: object-dictionary conversion.
 - `normalize_keys`, `serialize_slot_keyed_dict`, `deserialize_slot_keyed_dict`.
 - `deep_duplicate`: typed deep clone helper.

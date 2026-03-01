@@ -27,6 +27,10 @@ class SampleData extends RefCounted:
 class NestedData extends RefCounted:
 	var value: String = ""
 
+class MismatchData extends RefCounted:
+	var name: String = ""
+	var payload_obj: Object = RefCounted.new()
+
 func _initialize() -> void:
 	var serializer_script: GDScript = load("res://src/object_serialization_module.gd")
 	if serializer_script == null:
@@ -53,6 +57,14 @@ func _initialize() -> void:
 	var hydrated: SampleData = serializer.from_dict(payload, SampleData)
 	var cloned: SampleData = serializer.deep_duplicate(sample, SampleData)
 	var normalized: Dictionary[String, Variant] = serializer.normalize_keys({1: "one", "two": 2})
+	var mismatch_payload: Dictionary[String, Variant] = {
+		"name": "beta",
+		"payload_obj": {"nested": true}
+	}
+	var mismatch_default: MismatchData = serializer.from_dict(mismatch_payload, MismatchData)
+	var skip_mismatch_config: Variant = serializer_script.SerializationConfig.new()
+	skip_mismatch_config.skip_type_mismatch = true
+	var mismatch_skipped: MismatchData = serializer.from_dict(mismatch_payload, MismatchData, skip_mismatch_config)
 
 	var failures: Array[String] = []
 	if serialized_ignored.has("count"):
@@ -67,6 +79,10 @@ func _initialize() -> void:
 		failures.append("deep_duplicate failed array values")
 	if cloned == sample:
 		failures.append("deep_duplicate returned original instance")
+	if mismatch_default.payload_obj != null:
+		failures.append("from_dict should set object property to null on mismatched dictionary by default")
+	if mismatch_skipped.payload_obj == null:
+		failures.append("skip_type_mismatch should preserve existing object property when value is mismatched")
 
 	if failures.is_empty():
 		print("PASS gd-serialization object_serialization_module_test")
