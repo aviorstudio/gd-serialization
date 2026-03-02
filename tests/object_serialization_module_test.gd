@@ -65,6 +65,7 @@ func _initialize() -> void:
 	var skip_mismatch_config: Variant = serializer_script.SerializationConfig.new()
 	skip_mismatch_config.skip_type_mismatch = true
 	var mismatch_skipped: MismatchData = serializer.from_dict(mismatch_payload, MismatchData, skip_mismatch_config)
+	serializer.warm_cache([SampleData, NestedData])
 
 	var failures: Array[String] = []
 	if serialized_ignored.has("count"):
@@ -83,6 +84,8 @@ func _initialize() -> void:
 		failures.append("from_dict should set object property to null on mismatched dictionary by default")
 	if mismatch_skipped.payload_obj == null:
 		failures.append("skip_type_mismatch should preserve existing object property when value is mismatched")
+	if not serializer._property_cache.has(SampleData) or not serializer._property_cache.has(NestedData):
+		failures.append("warm_cache should pre-populate property cache for provided script types")
 
 	if failures.is_empty():
 		print("PASS gd-serialization object_serialization_module_test")

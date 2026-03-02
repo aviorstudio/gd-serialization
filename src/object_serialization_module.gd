@@ -80,6 +80,21 @@ func normalize_keys(dict: Dictionary) -> Dictionary[String, Variant]:
 		normalized[str(key)] = dict[key]
 	return normalized
 
+## Pre-populates the property cache for the given script types.
+## Call during initialization to avoid first-access cache misses at runtime.
+func warm_cache(types: Array, config: SerializationConfig = null) -> void:
+	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
+	for entry in types:
+		if entry == null:
+			continue
+		if not (entry is GDScript):
+			continue
+		var script_type: GDScript = entry
+		var instance: Object = script_type.new()
+		if instance == null:
+			continue
+		_get_script_properties(instance, resolved_config)
+
 func _serialize_value(value, config: SerializationConfig) -> Variant:
 	if value is int or value is float or value is String or value is bool:
 		return value
