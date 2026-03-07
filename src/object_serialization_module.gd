@@ -35,6 +35,7 @@ const DEFAULT_IGNORED_PROPERTY_NAMES: Array[String] = [
 ]
 
 ## Serializes an object's script variables into a dictionary.
+## Prefer this at persistence/transport boundaries, not for hot runtime state movement.
 func to_dict(obj: Object, config: SerializationConfig = null) -> Dictionary[String, Variant]:
 	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var result: Dictionary[String, Variant] = {}
@@ -52,6 +53,7 @@ func to_dict(obj: Object, config: SerializationConfig = null) -> Dictionary[Stri
 ## Creates a new object instance from serialized dictionary data.
 ##
 ## Callers should cast the return value to their expected type.
+## Prefer this at persistence/transport boundaries, not for hot runtime hydration loops.
 func from_dict(dict: Dictionary, type: GDScript, config: SerializationConfig = null) -> Object:
 	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var obj: Object = type.new()
@@ -70,6 +72,14 @@ func from_dict(dict: Dictionary, type: GDScript, config: SerializationConfig = n
 				obj.set(key, deserialized_value)
 
 	return obj
+
+## Boundary-named alias for serializing to transport/persistence payloads.
+func to_wire_dict(obj: Object, config: SerializationConfig = null) -> Dictionary[String, Variant]:
+	return to_dict(obj, config)
+
+## Boundary-named alias for hydrating from transport/persistence payloads.
+func from_wire_dict(dict: Dictionary, type: GDScript, config: SerializationConfig = null) -> Object:
+	return from_dict(dict, type, config)
 
 ## Returns a copy of a dictionary with all keys coerced to strings.
 func normalize_keys(dict: Dictionary) -> Dictionary[String, Variant]:
@@ -236,6 +246,7 @@ func deserialize_slot_keyed_dict(serialized: Dictionary, type_hint: GDScript) ->
 	return result
 
 ## Creates a deep copy of an object by duplicating its script-variable properties.
+## Prefer domain-specific duplicate/copy methods for hot runtime paths.
 func deep_duplicate(obj: Object, type: GDScript, config: SerializationConfig = null) -> Object:
 	var resolved_config: SerializationConfig = config if config else SerializationConfig.new()
 	var new_obj: Object = type.new()
@@ -251,6 +262,10 @@ func deep_duplicate(obj: Object, type: GDScript, config: SerializationConfig = n
 		new_obj.set(property_name, duplicated_value)
 
 	return new_obj
+
+## Boundary-named alias for reflective deep duplicate behavior.
+func deep_duplicate_for_boundary(obj: Object, type: GDScript, config: SerializationConfig = null) -> Object:
+	return deep_duplicate(obj, type, config)
 
 func _duplicate_value(value, property_type: int) -> Variant:
 	if value is int or value is float or value is String or value is bool:
