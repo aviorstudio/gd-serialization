@@ -334,6 +334,15 @@ func _has_property(obj: Object, property_name: String) -> bool:
 func _resolve_script_path(p_class_name: String, config: SerializationConfig) -> String:
 	if config.class_resolver.is_valid():
 		var resolved_path: Variant = config.class_resolver.call(p_class_name)
-		if resolved_path is String:
-			return resolved_path
+		if resolved_path is String and not str(resolved_path).is_empty():
+			return str(resolved_path)
+	return _resolve_global_class_path(p_class_name)
+
+func _resolve_global_class_path(p_class_name: String) -> String:
+	if p_class_name.is_empty():
+		return ""
+	var global_classes: Array = ProjectSettings.get_global_class_list()
+	for entry in global_classes:
+		if entry is Dictionary and str(entry.get("class", "")) == p_class_name:
+			return str(entry.get("path", ""))
 	return ""
