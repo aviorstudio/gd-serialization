@@ -32,9 +32,9 @@ class MismatchData extends RefCounted:
 	var payload_obj: Object = RefCounted.new()
 
 func _initialize() -> void:
-	var serializer_script: GDScript = load("res://src/object_serialization_module.gd")
+	var serializer_script: GDScript = load("res://addon/src/object_serialization_module.gd")
 	if serializer_script == null:
-		push_error("Failed to load res://src/object_serialization_module.gd")
+		push_error("Failed to load res://addon/src/object_serialization_module.gd")
 		quit(1)
 		return
 
