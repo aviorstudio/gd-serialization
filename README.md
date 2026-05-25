@@ -35,6 +35,14 @@ var clone: Object = serializer.from_wire_dict(payload, my_data.get_script())
 - In scope: persistence/tooling/import-export/wire payload conversion.
 - Out of scope: hot gameplay loops and repeated in-memory object movement.
 
+## Limitations
+
+- Serializes script variables, not arbitrary scene-tree state.
+- Cyclic object graphs are not supported.
+- `Node`, `Resource`, and engine object serialization should be handled explicitly by game code unless their script data is all you need.
+- Reflection has runtime cost; warm caches for repeated boundary work and avoid hot per-frame use.
+- Hydration is best-effort unless callers enable stricter config and validate the result.
+
 ## Configuration
 
 No project settings are required.
