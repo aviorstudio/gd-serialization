@@ -1,16 +1,18 @@
 # gd-serialization
 
-Reflective serialization helpers for persistence and transport boundaries in Godot 4.
+Convert Godot objects to dictionaries and back for saves, imports, exports, and network boundaries.
 
-This addon is intentionally not a recommendation for hot runtime state propagation.
+Use this addon when you have script-backed data objects and want repeatable dictionary payloads without hand-writing every mapper.
 
 ## Installation
 
 ### Via gdpm
+
 `gdpm install @aviorstudio/gd-serialization`
 
 ### Manual
-Copy `addon/` into `addons/@aviorstudio_gd-serialization/` and enable the plugin.
+
+Copy `addon/` into `res://addons/@aviorstudio_gd-serialization/` and enable the plugin.
 
 ## Quick Start
 
@@ -18,34 +20,32 @@ Copy `addon/` into `addons/@aviorstudio_gd-serialization/` and enable the plugin
 const ObjectSerializationModule = preload("res://addons/@aviorstudio_gd-serialization/src/object_serialization_module.gd")
 
 var serializer := ObjectSerializationModule.new()
-var payload: Dictionary = serializer.to_wire_dict(my_data)
-var clone: Object = serializer.from_wire_dict(payload, my_data.get_script())
+
+var payload: Dictionary = serializer.to_wire_dict(player_save_data)
+var restored: Object = serializer.from_wire_dict(payload, player_save_data.get_script())
 ```
 
-## API Reference
+## Common Uses
 
-- `SerializationConfig`: class resolver, ignored property controls, and optional `skip_type_mismatch` behavior for safer `from_dict` hydration.
-- `to_wire_dict` / `from_wire_dict`: explicit boundary-named object-dictionary conversion.
-- `to_dict` / `from_dict`: compatibility aliases for existing callers.
-- `normalize_keys`, `serialize_slot_keyed_dict`, `deserialize_slot_keyed_dict`.
-- `deep_duplicate_for_boundary`: reflective deep clone helper for boundary workflows.
+- Save script-backed data objects to disk.
+- Build JSON-friendly dictionaries for HTTP or WebSocket payloads.
+- Clone data objects at system boundaries.
+- Normalize dictionary keys before persistence.
 
-## Scope Boundary
+## What You Get
 
-- In scope: persistence/tooling/import-export/wire payload conversion.
-- Out of scope: hot gameplay loops and repeated in-memory object movement.
+- `SerializationConfig`: class resolution, ignored properties, and hydration behavior.
+- `to_wire_dict` / `from_wire_dict`: explicit boundary conversion helpers.
+- `to_dict` / `from_dict`: shorter compatibility aliases.
+- `normalize_keys`: convert dictionary keys to a stable representation.
+- `deep_duplicate_for_boundary`: clone nested data for safe handoff.
 
-## Limitations
+## Notes
 
 - Serializes script variables, not arbitrary scene-tree state.
 - Cyclic object graphs are not supported.
-- `Node`, `Resource`, and engine object serialization should be handled explicitly by game code unless their script data is all you need.
-- Reflection has runtime cost; warm caches for repeated boundary work and avoid hot per-frame use.
-- Hydration is best-effort unless callers enable stricter config and validate the result.
-
-## Configuration
-
-No project settings are required.
+- Reflection has runtime cost, so avoid per-frame serialization in hot loops.
+- Engine objects, resources, and nodes should usually have explicit game-level serializers.
 
 ## Testing
 
