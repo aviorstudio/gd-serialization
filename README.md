@@ -10,7 +10,7 @@ This addon is intentionally not a recommendation for hot runtime state propagati
 `gdpm install @aviorstudio/gd-serialization`
 
 ### Manual
-Copy this directory into `addons/@aviorstudio_gd-serialization/` and enable the plugin.
+Copy `addon/` into `addons/@aviorstudio_gd-serialization/` and enable the plugin.
 
 ## Quick Start
 
