@@ -6,9 +6,9 @@ Use this addon when you have script-backed data objects and want repeatable dict
 
 ## Installation
 
-### Via gdpm
+### Via gdam
 
-`gdpm install @aviorstudio/gd-serialization`
+`gdam install @aviorstudio/gd-serialization`
 
 ### Manual
 
