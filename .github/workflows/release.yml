@@ -13,7 +13,7 @@ on:
           - major
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency: release-${{ github.repository }}
 
@@ -23,6 +23,8 @@ jobs:
     # Bounded, so a step that hangs fails here rather than sitting until the
     # runner's own timeout hours later.
     timeout-minutes: 20
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -74,20 +76,6 @@ jobs:
       - name: Test
         uses: ./.github/actions/test
 
-      - name: Package addon
-        run: |
-          set -euo pipefail
-          test -f addon/plugin.cfg
-          repo_owner="${GITHUB_REPOSITORY%%/*}"
-          addon_dir="@${repo_owner}_${GITHUB_REPOSITORY#*/}"
-          package_root="dist/${addon_dir}"
-          mkdir -p "$package_root"
-          cp addon/plugin.cfg addon/plugin.gd "$package_root/"
-          cp addon/*.uid "$package_root/" 2>/dev/null || true
-          if [ -f addon/autoload.gd ]; then cp addon/autoload.gd "$package_root/"; fi
-          if [ -d addon/src ]; then cp -R addon/src "$package_root/"; fi
-          (cd "$package_root" && zip -r "../${addon_dir}.zip" .)
-
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,10 +83,10 @@ jobs:
         run: gh release create "$TAG" dist/*.zip --target "$GITHUB_SHA" --title "$TAG" --notes "Release $TAG"
 
       - name: Install GDAM
-        uses: aviorstudio/gdam-actions/install@v0.0.2
+        uses: aviorstudio/gdam-actions/install@d735444eb470194585def44521d5d91df2260e63 # v0.0.2
 
       - name: Publish to GDAM
-        uses: aviorstudio/gdam-actions/publish@v0.0.2
+        uses: aviorstudio/gdam-actions/publish@d735444eb470194585def44521d5d91df2260e63 # v0.0.2
         with:
           version: ${{ steps.release.outputs.version }}
           tag: ${{ steps.release.outputs.tag }}

@@ -68,7 +68,11 @@ Run locally with:
 ./tests/test.sh
 ```
 
-CI runs the same test script when available.
+**Correction (fieldsofrevik#153):** Earlier documentation said CI ran the test
+script "when available", which could imply a missing suite was allowed to skip.
+CI and release now require the Godot 4.7.2 suite, fail on runtime errors and
+timeouts, prove assertion reach, and verify the exact closed-manifest ZIP through
+an enable/restart/smoke/disable/restart editor lifecycle.
 
 ## License
 
