@@ -26,14 +26,15 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        test -f addon/plugin.cfg
+        ./scripts/package.sh
 
     # Godot comes from a LOCAL action, copied from the one castledrop and prizm
     # carry. The version used to be a download URL written into ci.yml -- the
     # engine this addon is tested against lived in workflow YAML.
     - uses: ./.github/actions/setup-godot
       with:
-        godot-version: '4.4.1'
+        godot-version: '4.7.2'
+        godot-sha256: 'cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4'
 
     # No `if: hashFiles(...)` guard. This step used to skip itself when
     # tests/test.sh was absent, which is indistinguishable from the script being
@@ -42,3 +43,11 @@ runs:
     - name: Godot tests
       shell: bash
       run: ./tests/test.sh
+
+    - name: Gate negative and restored controls
+      shell: bash
+      run: ./tests/gate_self_test.sh
+
+    - name: Verify packaged install and editor lifecycle
+      shell: bash
+      run: ./scripts/verify-package.sh dist/@aviorstudio_gd-serialization.zip
