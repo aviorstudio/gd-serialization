@@ -22,7 +22,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${ github.ref }
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -36,6 +36,13 @@ jobs:
       # comment so the version is still readable. A tag is a moving reference:
       # whoever can move it can run code in this job.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - name: Test
         uses: ./.github/actions/test
