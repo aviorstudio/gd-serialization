@@ -1,5 +1,5 @@
 name: 'Setup Godot'
-description: 'Install Godot binary with caching and optionally install export templates'
+description: 'Install a checksummed Godot binary and optionally install export templates'
 inputs:
   godot-version:
     description: 'Godot version to install (e.g., 4.4.1)'
@@ -15,15 +15,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Cache Godot binary
-      id: cache-godot
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-      with:
-        path: ${{ github.workspace }}/.cache/godot/Godot_v${{ inputs.godot-version }}-stable_linux.x86_64.zip
-        key: godot-${{ inputs.godot-version }}-${{ inputs.godot-sha256 }}-${{ runner.os }}
-
     - name: Install Godot
-      if: steps.cache-godot.outputs.cache-hit != 'true'
       shell: bash
       run: |
         mkdir -p "$GITHUB_WORKSPACE/.cache/godot"
