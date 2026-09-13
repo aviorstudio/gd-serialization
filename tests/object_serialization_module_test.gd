@@ -88,6 +88,8 @@ func _initialize() -> void:
 		failures.append("warm_cache should pre-populate property cache for provided script types")
 
 	if failures.is_empty():
+		print("TEST_ASSERTIONS_REACHED:9")
+		print("TEST_FAILURES:0")
 		print("PASS gd-serialization object_serialization_module_test")
 		quit(0)
 		return
