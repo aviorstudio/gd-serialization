@@ -84,10 +84,17 @@ jobs:
 
       - name: Install GDAM
         uses: aviorstudio/gdam-actions/install@d735444eb470194585def44521d5d91df2260e63 # v0.0.2
+        with:
+          version: v0.0.8
+
+      - name: Verify GDAM CLI identity
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' 'bf5d03baa94da905ca128a55c4acd6b0552c60127d53fc4d01ecaa8a377b0b53' "$RUNNER_TEMP/gdam-bin/gdam" | sha256sum --check
+          test "$(gdam --version | head -n 1)" = 'gdam 0.0.8'
 
       - name: Publish to GDAM
         uses: aviorstudio/gdam-actions/publish@d735444eb470194585def44521d5d91df2260e63 # v0.0.2
         with:
-          version: ${{ steps.release.outputs.version }}
           tag: ${{ steps.release.outputs.tag }}
           secret-key: ${{ secrets.GDAM_SECRET_KEY }}
