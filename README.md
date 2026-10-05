@@ -1,3 +1,5 @@
+<!-- Generated from private documentation source. Do not edit directly. Source SHA256: f52d6815715bf5f74ba5c993b72736e954c06e02ffab5e809f1d10c88f82432e -->
+
 # gd-serialization
 
 Convert Godot objects to dictionaries and back for saves, imports, exports, and network boundaries.
@@ -52,7 +54,7 @@ var restored: Object = decoded.value
 
 - Every serialization/hydration method returns `{ok, value, errors}`. On failure,
   `value` is `null`; each error has stable `code`, `path`, and `message` fields.
-- **Correction (fieldsofrevik#153):** Previous versions accepted engine properties
+- **Usage note:** Previous versions accepted engine properties
   during hydration and silently defaulted or skipped mismatched values. Hydration
   now accepts declared script variables only, validates before assignment, and
   verifies setter readback. A failed temporary object's setter side effects cannot
@@ -72,33 +74,7 @@ var restored: Object = decoded.value
 - Reflection has runtime cost, so avoid per-frame serialization in hot loops.
 - Engine objects, resources, and nodes should usually have explicit game-level serializers.
 
-## Repository Layout
-
-- `addon/`: Godot plugin source packaged for GDAM and manual installation.
-- `addon/plugin.cfg`: plugin name, version, description, and entry script.
-- `addon/src/`: reusable GDScript modules.
-- `tests/`: Godot test project/scripts for addon behavior.
-- `.github/workflows/ci.yml`: validates package shape and runs tests.
-- `.github/workflows/release.yml`: creates GitHub release ZIPs and publishes to GDAM.
-
-## Versioning And Releases
-
-The version in `addon/plugin.cfg` is the addon package version. Releases are created from `main` with the manual release workflow and plain semver tags like `v0.0.1`; the workflow verifies `plugin.cfg`, builds `@aviorstudio_gd-serialization.zip`, and publishes `@aviorstudio/gd-serialization` to GDAM.
-
-## Testing
-
-Run locally with:
-
-```sh
-./tests/test.sh
-```
-
-**Correction (fieldsofrevik#153):** Earlier documentation said CI ran the test
-script "when available", which could imply a missing suite was allowed to skip.
-CI and release now require the Godot 4.7.2 suite, fail on runtime errors and
-timeouts, prove assertion reach, and verify the exact closed-manifest ZIP through
-an enable/restart/smoke/disable/restart editor lifecycle.
 
 ## License
 
-MIT
+See `LICENSE`.
