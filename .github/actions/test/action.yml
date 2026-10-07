@@ -36,18 +36,6 @@ runs:
         godot-version: '4.7.2'
         godot-sha256: 'cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4'
 
-    # No `if: hashFiles(...)` guard. This step used to skip itself when
-    # tests/test.sh was absent, which is indistinguishable from the script being
-    # renamed or deleted -- a skipped test is a green tick. This addon has a
-    # suite, so the step runs unconditionally and a missing script now fails.
-    - name: Godot tests
+    - name: Run addon profile gates
       shell: bash
-      run: ./tests/test.sh
-
-    - name: Gate negative and restored controls
-      shell: bash
-      run: ./tests/gate_self_test.sh
-
-    - name: Verify packaged install and editor lifecycle
-      shell: bash
-      run: ./scripts/verify-package.sh dist/@aviorstudio_gd-serialization.zip
+      run: make check
