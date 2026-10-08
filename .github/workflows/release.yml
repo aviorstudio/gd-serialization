@@ -76,11 +76,12 @@ jobs:
       - name: Test
         uses: ./.github/actions/test
 
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.release.outputs.tag }}
-        run: gh release create "$TAG" dist/*.zip --target "$GITHUB_SHA" --title "$TAG" --notes "Release $TAG"
+      - name: Verify tested package identity
+        id: package
+        run: |
+          set -euo pipefail
+          bash scripts/verify-package.sh dist/@aviorstudio_gd-serialization.zip
+          echo "sha256=$(sha256sum dist/@aviorstudio_gd-serialization.zip | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
 
       - name: Install GDAM
         uses: aviorstudio/gdam-actions/install@699727af05ff8da8f6816cc5c14a16b2b9470219 # v0.2.0
@@ -94,9 +95,10 @@ jobs:
           printf '%s  %s\n' 'bf5d03baa94da905ca128a55c4acd6b0552c60127d53fc4d01ecaa8a377b0b53' "$RUNNER_TEMP/gdam-bin/gdam" | sha256sum --check
           test "$(gdam --version | head -n 1)" = 'gdam 0.0.8'
 
-      - name: Publish to GDAM
-        uses: aviorstudio/gdam-actions/publish@699727af05ff8da8f6816cc5c14a16b2b9470219 # v0.2.0
+      - name: Publish verified addon release
+        uses: aviorstudio/gdam-actions/release@699727af05ff8da8f6816cc5c14a16b2b9470219 # v0.2.0
         with:
           tag: ${{ steps.release.outputs.tag }}
           secret-key: ${{ secrets.GDAM_SECRET_KEY }}
-          asset: '@aviorstudio_gd-serialization.zip'
+          asset: dist/@aviorstudio_gd-serialization.zip
+          tested-sha256: ${{ steps.package.outputs.sha256 }}
