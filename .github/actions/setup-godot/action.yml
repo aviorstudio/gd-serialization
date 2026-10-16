@@ -1,4 +1,4 @@
-name: Setup verified Godot
+name: "Set up Godot"
 description: Install caller-pinned engine and templates through released shared setup
 inputs:
   godot-version:
@@ -17,7 +17,8 @@ inputs:
 runs:
   using: composite
   steps:
-  - uses: nicodes/tools/godot-setup@cf0e560c9bbb888488191fcce03409b6c6fbdc28
+  - name: "Set up Godot"
+    uses: nicodes/tools/godot-setup@cf0e560c9bbb888488191fcce03409b6c6fbdc28
     with:
       version: ${{ inputs.godot-version }}
       origin: godot
