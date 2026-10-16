@@ -27,6 +27,7 @@ concurrency:
 
 jobs:
   ci:
+    name: "Test"
     runs-on: blacksmith-2vcpu-ubuntu-2404
     # Bounded, so a step that hangs fails here rather than sitting until the
     # runner's own timeout hours later.
@@ -35,7 +36,8 @@ jobs:
       # Third-party actions are pinned by SHA, with the tag in a trailing
       # comment so the version is still readable. A tag is a moving reference:
       # whoever can move it can run code in this job.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: "Check out source"
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
