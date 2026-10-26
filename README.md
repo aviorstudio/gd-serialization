@@ -1,4 +1,4 @@
-<!-- Generated from private documentation source. Do not edit directly. Source SHA256: f52d6815715bf5f74ba5c993b72736e954c06e02ffab5e809f1d10c88f82432e -->
+<!-- Generated from private documentation source. Do not edit directly. Source SHA256: c57ff3f5875b8d75637b87efc8611970c99340a83b41c5ab4ec36673a982b588 -->
 
 # gd-serialization
 
@@ -78,3 +78,15 @@ var restored: Object = decoded.value
 ## License
 
 See `LICENSE`.
+
+## Repository development
+
+Install the [Komizo release](https://github.com/nicodes/komizo#install) matching `komizo.lock`.
+
+```sh
+komizo check                 # Source, runtime, package and installed-addon checks
+komizo run test              # Focused addon test suite
+komizo run artifact-check    # Verify the built package
+```
+
+The addon recipe supplies the verified Godot engine and templates in checkout-owned tool/data directories. Interactive use belongs to a consuming Godot project.
