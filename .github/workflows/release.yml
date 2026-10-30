@@ -27,7 +27,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Set up locked komizo
-      uses: nicodes/komizo/setup@1b740f28682948a2d5eb4613744bb262d2056e6c
+      uses: nicodes/komizo/setup@2ca94e2fd4bb05f41bb228e9c366e5cc733c75e6
       env:
         GH_TOKEN: ${{ github.token }}
       timeout-minutes: 5
@@ -69,7 +69,7 @@ jobs:
         echo "version=$version" >> "$GITHUB_OUTPUT"
         echo "tag=$tag" >> "$GITHUB_OUTPUT"
     - name: Check project
-      uses: nicodes/komizo/run@1b740f28682948a2d5eb4613744bb262d2056e6c
+      uses: nicodes/komizo/run@2ca94e2fd4bb05f41bb228e9c366e5cc733c75e6
       with:
         target: check
     - name: Verify tested package identity
@@ -79,7 +79,7 @@ jobs:
         bash scripts/verify-package.sh dist/@aviorstudio_gd-serialization.zip
         echo "sha256=$(sha256sum dist/@aviorstudio_gd-serialization.zip | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
     - name: Publish verified addon release
-      uses: aviorstudio/gdam-actions/release@6677226d9353df1d410f3e7f5075e13b3b7d5308
+      uses: aviorstudio/gdam-actions/release@3a46007e296e60e15a4ad47727ad33046e52e6ea
       with:
         tag: ${{ steps.release.outputs.tag }}
         api-key: ${{ secrets.GDAM_API_KEY }}
