@@ -1,4 +1,4 @@
-<!-- Generated from private documentation source. Do not edit directly. Source SHA256: a2519ff6914d43b3eb58fceeabf2fa5d3e8b69e15493e73b3a052901251693db -->
+<!-- Generated from private documentation source. Do not edit directly. Source SHA256: fbae67d9cfb8c48f074b1cdef6ace82e66fe6f41c6cd638f1646b5b15fa09caf -->
 
 # gd-serialization
 
@@ -91,3 +91,7 @@ mise run check
 ```
 
 `mise.toml` owns tool versions and tasks. Engine and template downloads are checksum verified. `mise run build` packages the addon; `mise run test` runs its declared tests. The complete check also validates the installed artifact. Build and test receipts stay in `.artifacts/verification`.
+
+## Contributor task interface
+
+Contributor tool versions and task entry points live in the native Mise configuration. Use `mise run lint` for source checks, `mise run test` for the applicable behavioral tests, and `mise run check` for the complete supported gate. `mise run clean` removes declared generated outputs while preserving source, credentials and retained data. This package has no application development service.
