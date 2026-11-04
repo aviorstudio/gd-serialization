@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-RUNNER="$SCRIPT_DIR/test.sh"
+RUNNER="$TOOLS_ROOT/helpers/godot-test.py"
 FIXTURE="$SCRIPT_DIR/fixtures/runner_fixture.gd"
 
 expect_pass() {
@@ -25,10 +25,10 @@ expect_fail() {
     echo "NEGATIVE_CONTROL_FAILED_AS_EXPECTED:$name"
 }
 
-expect_pass success env RUNNER_FIXTURE_MODE=success "$RUNNER" "$FIXTURE"
-expect_fail push_error_zero env RUNNER_FIXTURE_MODE=push_error_zero "$RUNNER" "$FIXTURE"
-expect_fail assertion_overwritten env RUNNER_FIXTURE_MODE=assert_overwritten "$RUNNER" "$FIXTURE"
-expect_fail parse_unreachable "$RUNNER" "$SCRIPT_DIR/fixtures/parse_failure_fixture.gd"
-expect_fail timeout env TEST_TIMEOUT_SECONDS=1 RUNNER_FIXTURE_MODE=timeout "$RUNNER" "$FIXTURE"
-expect_fail missing_script "$RUNNER" "$SCRIPT_DIR/fixtures/does_not_exist.gd"
-expect_pass restored_success env RUNNER_FIXTURE_MODE=success "$RUNNER" "$FIXTURE"
+expect_pass success env RUNNER_FIXTURE_MODE=success python3 "$RUNNER" --project "$SCRIPT_DIR/.." --program "$FIXTURE" --sentinel TEST_FAILURES:0 --assertions-regex '^TEST_ASSERTIONS_REACHED:([1-9][0-9]*)$'
+expect_fail push_error_zero env RUNNER_FIXTURE_MODE=push_error_zero python3 "$RUNNER" --project "$SCRIPT_DIR/.." --program "$FIXTURE" --sentinel TEST_FAILURES:0 --assertions-regex '^TEST_ASSERTIONS_REACHED:([1-9][0-9]*)$'
+expect_fail assertion_overwritten env RUNNER_FIXTURE_MODE=assert_overwritten python3 "$RUNNER" --project "$SCRIPT_DIR/.." --program "$FIXTURE" --sentinel TEST_FAILURES:0 --assertions-regex '^TEST_ASSERTIONS_REACHED:([1-9][0-9]*)$'
+expect_fail parse_unreachable python3 "$RUNNER" --project "$SCRIPT_DIR/.." --program "$SCRIPT_DIR/fixtures/parse_failure_fixture.gd" --sentinel TEST_FAILURES:0 --assertions-regex '^TEST_ASSERTIONS_REACHED:([1-9][0-9]*)$'
+expect_fail timeout env RUNNER_FIXTURE_MODE=timeout python3 "$RUNNER" --timeout 1 --project "$SCRIPT_DIR/.." --program "$FIXTURE" --sentinel TEST_FAILURES:0 --assertions-regex '^TEST_ASSERTIONS_REACHED:([1-9][0-9]*)$'
+expect_fail missing_script python3 "$RUNNER" --project "$SCRIPT_DIR/.." --program "$SCRIPT_DIR/fixtures/does_not_exist.gd" --sentinel TEST_FAILURES:0 --assertions-regex '^TEST_ASSERTIONS_REACHED:([1-9][0-9]*)$'
+expect_pass restored_success env RUNNER_FIXTURE_MODE=success python3 "$RUNNER" --project "$SCRIPT_DIR/.." --program "$FIXTURE" --sentinel TEST_FAILURES:0 --assertions-regex '^TEST_ASSERTIONS_REACHED:([1-9][0-9]*)$'
