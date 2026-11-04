@@ -34,5 +34,7 @@ timeout = 300
 args = ["dist/@aviorstudio_gd-serialization.zip"]
 
 [publication]
+validation_timeout = 20
+publish_timeout = 10
 tag_prefix = "v"
 initial = "first"
