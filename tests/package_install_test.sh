@@ -10,7 +10,7 @@ INSTALL="$FIXTURE/addons/$ADDON_DIR"
 mkdir -p "$INSTALL"
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-python3 "$TOOLS_ROOT/helpers/addon-package.py" verify --manifest "$ROOT_DIR/package.files" --checksums "$ZIP.sha256" "$ZIP"
+python3 "$TOOLS_ROOT/helpers/addon-package.py" verify --manifest "$ROOT_DIR/package.files" --checksums "$ZIP.sha256" --archive "$ZIP"
 unzip -q "$ZIP" -d "$INSTALL"
 if find "$INSTALL" -type l -print -quit | grep -q .; then
     echo "ERROR: installed tree contains a symlink" >&2
