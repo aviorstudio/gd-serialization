@@ -10,7 +10,7 @@ archive = "dist/@aviorstudio_gd-serialization.zip"
 required_paths = ["addon/plugin.cfg", "addon/plugin.gd", "package.files"]
 
 [format]
-paths = ["addon", "tests"]
+paths = ["addon", "tests/fixtures/nested_data.gd", "tests/fixtures/runner_fixture.gd", "tests/object_serialization_module_test.gd"]
 
 [clean]
 paths = ["dist", ".artifacts/build", ".artifacts/godot", ".artifacts/godot-data", ".artifacts/playwright", ".artifacts/tmp", ".godot"]
