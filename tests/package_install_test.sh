@@ -9,17 +9,8 @@ ADDON_DIR="@aviorstudio_gd-serialization"
 INSTALL="$FIXTURE/addons/$ADDON_DIR"
 mkdir -p "$INSTALL"
 
-if unzip -Z1 "$ZIP" | grep -Eq '(^/|(^|/)\.\.(/|$)|(^|/)[^/]+/$)'; then
-    echo "ERROR: archive contains an absolute/traversal path or undeclared directory entry" >&2
-    exit 1
-fi
-EXPECTED=$'plugin.cfg\nplugin.gd\nplugin.gd.uid\nsrc/object_serialization_module.gd\nsrc/object_serialization_module.gd.uid'
-ACTUAL=$(unzip -Z1 "$ZIP" | sort)
-[[ "$ACTUAL" == "$EXPECTED" ]] || {
-    echo "ERROR: closed archive manifest mismatch" >&2
-    printf '%s\n' "$ACTUAL" >&2
-    exit 1
-}
+ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+python3 "$TOOLS_ROOT/helpers/addon-package.py" verify --manifest "$ROOT_DIR/package.files" --checksums "$ZIP.sha256" --archive "$ZIP"
 unzip -q "$ZIP" -d "$INSTALL"
 if find "$INSTALL" -type l -print -quit | grep -q .; then
     echo "ERROR: installed tree contains a symlink" >&2

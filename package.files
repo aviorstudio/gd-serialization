@@ -1,0 +1,5 @@
+plugin.cfg
+plugin.gd
+plugin.gd.uid
+src/object_serialization_module.gd
+src/object_serialization_module.gd.uid

@@ -1,0 +1,43 @@
+version = 1
+recipe = "godot-addon"
+
+[package]
+source = "addon"
+manifest = "package.files"
+archive = "dist/@aviorstudio_gd-serialization.zip"
+
+[lint]
+required_paths = ["addon/plugin.cfg", "addon/plugin.gd", "package.files"]
+
+[format]
+paths = ["addon", "tests/fixtures/nested_data.gd", "tests/fixtures/runner_fixture.gd", "tests/object_serialization_module_test.gd"]
+
+[clean]
+paths = ["dist", ".artifacts/build", ".artifacts/godot", ".artifacts/godot-data", ".artifacts/playwright", ".artifacts/tmp", ".godot"]
+
+[[tests.unit]]
+runner = "godot"
+path = "tests/object_serialization_module_test.gd"
+sentinel = "TEST_FAILURES:0"
+policy = { assertions_regex = "^TEST_ASSERTIONS_REACHED:([1-9][0-9]*)$" }
+timeout = 60
+
+[[tests.unit]]
+runner = "bash"
+path = "tests/gate_self_test.sh"
+timeout = 120
+
+[[tests.integration]]
+runner = "bash"
+path = "tests/package_install_test.sh"
+timeout = 300
+args = ["dist/@aviorstudio_gd-serialization.zip"]
+
+[publication]
+validation_timeout = 20
+publish_timeout = 10
+tag_prefix = "v"
+initial = "first"
+
+[ci]
+timeout_minutes = 30
