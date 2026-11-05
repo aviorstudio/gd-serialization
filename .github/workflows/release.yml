@@ -1,90 +1,25 @@
+# Generated cookbook caller. Change recipe data and regenerate.
 name: Release
 'on':
   workflow_dispatch:
     inputs:
       bump:
-        description: Version bump
-        required: true
+        description: Version bump; plugin.cfg must already match
         type: choice
-        options:
-        - patch
-        - minor
-        - major
-permissions:
-  contents: read
-concurrency: release-${{ github.repository }}
+        default: patch
+        options: [patch, minor, major]
+permissions: {}
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
 jobs:
   release:
-    name: Release
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    uses: nicodes/tools/.github/workflows/cookbook-addon-release.yml@ade449c3150fd5a9c86fb6ec21d8ae905d6a2754
     permissions:
       contents: write
-      attestations: read
-    steps:
-    - name: Check out source
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      with:
-        fetch-depth: 0
-    - name: Set up development tools
-      uses: nicodes/tools/setup@a1c0321f3b4917a7e99eca42e241e46670f6e1e1
-      env:
-        GH_TOKEN: ${{ github.token }}
-      timeout-minutes: 5
-    - name: Determine release version
-      id: release
-      env:
-        BUMP: ${{ inputs.bump }}
-      run: |-
-        set -euo pipefail
-        if [ "$GITHUB_REF" != "refs/heads/main" ]; then
-          echo 'Run releases from the main branch.' >&2
-          exit 1
-        fi
-        git fetch --tags --force
-        latest="$(git tag --list 'v[0-9]*' | sed -E 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)"
-        if [ -z "$latest" ]; then
-          version="0.0.1"
-        else
-          IFS=. read -r major minor patch <<< "$latest"
-          case "$BUMP" in
-            major) major=$((major + 1)); minor=0; patch=0 ;;
-            minor) minor=$((minor + 1)); patch=0 ;;
-            patch) patch=$((patch + 1)) ;;
-            *) echo "Unsupported bump: $BUMP" >&2; exit 1 ;;
-          esac
-          version="${major}.${minor}.${patch}"
-        fi
-        tag="v${version}"
-        if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-          echo "Tag already exists: $tag" >&2
-          exit 1
-        fi
-        plugin_version="$(sed -n -E 's/^version="([^"]+)"/\1/p' addon/plugin.cfg | head -n 1)"
-        if [ "$plugin_version" != "$version" ]; then
-          echo "addon/plugin.cfg version is $plugin_version, but the next $BUMP release is $version." >&2
-          echo "Update addon/plugin.cfg to version=\"$version\", commit it, then rerun this workflow." >&2
-          exit 1
-        fi
-        echo "version=$version" >> "$GITHUB_OUTPUT"
-        echo "tag=$tag" >> "$GITHUB_OUTPUT"
-    - name: Check project
-      shell: bash
-      run: |-
-        set -euo pipefail
-        mise run check
-    - name: Verify tested package identity
-      id: package
-      run: |-
-        set -euo pipefail
-        bash scripts/verify-package.sh dist/@aviorstudio_gd-serialization.zip
-        echo "sha256=$(sha256sum dist/@aviorstudio_gd-serialization.zip | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
-    - name: Publish verified addon release
-      uses: aviorstudio/gdam-actions/release@3a46007e296e60e15a4ad47727ad33046e52e6ea
-      with:
-        tag: ${{ steps.release.outputs.tag }}
-        api-key: ${{ secrets.GDAM_API_KEY }}
-        asset: dist/@aviorstudio_gd-serialization.zip
-        tested-sha256: ${{ steps.package.outputs.sha256 }}
-    env:
-      MISE_GITHUB_TOKEN: ${{ github.token }}
+    with:
+      tools-ref: ade449c3150fd5a9c86fb6ec21d8ae905d6a2754
+      mode: release
+      bump: ${{ inputs.bump }}
+    secrets:
+      gdam-key: ${{ secrets.GDAM_API_KEY }}

@@ -38,3 +38,6 @@ validation_timeout = 20
 publish_timeout = 10
 tag_prefix = "v"
 initial = "first"
+
+[ci]
+timeout_minutes = 30
